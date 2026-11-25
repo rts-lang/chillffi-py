@@ -1,0 +1,2 @@
+[alias]
+ex = "run --package chillffi-py-examples --example run --"

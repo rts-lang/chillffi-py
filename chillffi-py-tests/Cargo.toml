@@ -1,0 +1,47 @@
+# Это крейт питон-тестов для `chillffi-py`.
+
+[package]
+name = "chillffi-py-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# ======================================================================================================================
+
+autobins = false
+autotests = false
+autobenches = false
+autoexamples = false
+
+# ======================================================================================================================
+# Тесты — это `tests/<имя>/main.py`, а запускает их единственный таргет `tests/suite.rs`
+# со СВОИМ harness (`harness = false`): это обычная программа со своим `main` и кодом
+# возврата, упавший питон-тест валит `cargo test`.
+#
+# Каталог `tests/` Cargo компилирует ТОЛЬКО при `cargo test`, поэтому `cargo build`
+# ни venv, ни модуль, ни питон-тесты не трогает. build.rs для этого не нужен.
+
+[lib]
+path = "src/lib.rs"
+test = false
+doctest = false
+
+[[test]]
+name = "suite"
+path = "tests/suite.rs"
+harness = false
+
+# ======================================================================================================================
+
+[target.'cfg(windows)'.dev-dependencies]
+
+cc = "1.2"
+# Locates cl.exe/link.exe on Windows (the suite compiles the C helper libraries
+# for the python tests); unused elsewhere.
+
+# ======================================================================================================================
+
+[lints]
+workspace = true
+
+# ======================================================================================================================

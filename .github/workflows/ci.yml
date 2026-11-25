@@ -1,0 +1,104 @@
+name: CI
+
+# This CI is only needed for build and compatibility checks.
+#
+# In addition, it allows conveniently checking everything locally and making PRs
+# into a linear history - which is strictly locked without other branches.
+
+on:
+  # This is needed for the mandatory final PR check.
+  pull_request:
+    branches: [main]
+  # This is needed for manual checking of one's own changes;
+  # It does not interfere with frequent checks.
+  workflow_dispatch:
+
+concurrency:
+  # github.head_ref exists only for pull_request (the name of the source branch).
+  # github.ref is for push (refs/heads/branch-name).
+  # The expression gives the same key for both events on the same branch.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # Allow:
+    # - any pull_request;
+    # - workflow_dispatch only NOT from main.
+    if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-26.04 # x86_64
+          - ubuntu-24.04 # x86_64
+          - ubuntu-26.04-arm # ARM64
+          - ubuntu-24.04-arm # ARM64
+          - macos-26 # ARM64 (Apple Silicon)
+          - macos-15 # ARM64 (Apple Silicon)
+          - macos-26-intel # x86_64
+          - macos-15-intel # x86_64
+          - windows-2025 # x86_64
+          - windows-11-arm # ARM64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2 # Caching;
+        with:
+          cache-on-failure: true # Always do it.
+      
+      # 3.10 is the minimum (`requires-python`, `abi3-py310`);
+      # versions-manifest.json of actions/python-versions has no CPython 3.10 for Windows ARM64.
+      - uses: actions/setup-python@v7
+        with:
+          #python-version: ${{ matrix.os == 'windows-11-arm' && '3.11' || '3.10' }}
+          python-version: '3.10'
+      
+      # todo Будут ошибки сейчас.
+      # - name: Clippy
+      #   run: cargo clippy --all-targets -- -D warnings
+      
+      #
+      - name: Docs
+        run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      
+      # Build and compatibility check.
+      - name: Run tests
+        run: cargo test
+      
+      # Examples check.
+      - name: Run examples
+        shell: bash
+        run: |
+          set -uo pipefail
+          
+          failed=0
+          
+          while read -r name; do
+            echo "==> example: $name"
+          
+            output_file="$(mktemp)"
+          
+            if cargo --quiet ex "$name" >"$outputFile" 2>&1; then
+              echo "    ok"
+              rm -f "$outputFile"
+            else
+              echo "    FAILED"
+              cat "$outputFile"
+              rm -f "$outputFile"
+              failed=1
+            fi
+          
+          done < <(
+            for script in chillffi-py-examples/examples/*/main.py; do
+              basename "$(dirname "$script")"
+            done |
+              tr -d '\r' |
+              sort -u
+          )
+          
+          exit "$failed"

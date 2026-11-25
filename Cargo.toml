@@ -1,0 +1,69 @@
+# ======================================================================================================================
+# Workspace chillffi-py.
+#
+#   chillffi-py/         — основной крейт: cdylib (питон-модуль `chillffi`), src/.
+#   chillffi-py-examples/ — примеры (питон-тесты) и их запуск: tests/suite.rs.
+#
+# ПИТОН-ТЕСТЫ ЖИВУТ В КРЕЙТЕ ПРИМЕРОВ, В ТАРГЕТЕ `tests/suite.rs` СО СВОИМ HARNESS
+# (`harness = false`). Каталог `tests/` Cargo компилирует ТОЛЬКО при `cargo test` —
+# это и есть разделение `cargo build` / `cargo test`. Build.rs не нужен вовсе:
+# разделить build и test внутри build.rs штатно нельзя (`#[cfg(test)]` там всегда
+# false, `PROFILE` = "debug" в обоих случаях, `CARGO_CFG_TEST` не существует), а
+# cargo запускает build-скрипт при ЛЮБОМ `cargo build`.
+#
+# ПОЧЕМУ examples В default-members:
+#
+#   * `cargo test` в корне репозитория должен собрать и запустить таргет `suite`
+#     крейта примеров — значит крейт должен быть в наборе пакетов по умолчанию
+#     (раньше он был dev-зависимостью, и при `cargo test` не собирался вовсе);
+#   * `cargo build` при этом остаётся чистым: `tests/` он не компилирует, а
+#     build.rs у крейта примеров больше нет — ни venv, ни модуль, ни питон-тесты
+#     обычная сборка не трогает.
+#
+# Итог: `cargo test` в корне = собрать модуль, поставить его в venv, скомпилировать
+# C-помощники и прогнать все `examples/*/main.py`.
+# ======================================================================================================================
+
+[workspace]
+
+members = ["chillffi-py", "chillffi-py-examples", "chillffi-py-tests"]
+default-members = ["chillffi-py", "chillffi-py-examples", "chillffi-py-tests"]
+# Оба соберутся, но у примеров нечего собирать;
+# Поэтому они пробросятся для `cargo test` отсюда.
+
+resolver = "3"
+
+# ======================================================================================================================
+
+[workspace.lints.rust]
+
+missing_docs = "allow"
+# We do not enforce `docs` because it would require descriptions at
+# the top of every file and other unnecessary documentation.
+
+non_snake_case = "allow"
+non_upper_case_globals = "allow"
+non_camel_case_types = "allow"
+
+# ======================================================================================================================
+
+# Usage examples:
+# cargo run --example simple
+
+# ======================================================================================================================
+
+# Testing:
+# cargo test
+
+# ======================================================================================================================
+
+[workspace.lints.clippy]
+
+unused_unit = "allow"
+option_if_let_else = "allow"
+collapsible_if = "allow"
+too_long_first_doc_paragraph = "allow"
+len_without_is_empty = "allow"
+nursery = { level = "warn", priority = -1 } # At the very bottom
+
+# ======================================================================================================================

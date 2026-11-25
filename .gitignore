@@ -1,0 +1,33 @@
+/target
+/.idea
+/Cargo.lock
+
+# Python (maturin / PyO3)
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.pyd
+/dist
+/build
+*.egg-info
+.venv/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# C artifacts
+*.dll
+*.lib
+*.exp
+*.obj
+*.pdb
+
+# TODO Пока что слишком кривой. Надо чёто умнее.
+# Например `__pycache__` может быть в папке примеров.
+# А некоторых файлов может вообще не быть.
+# Надо бить сразу по папкам, если нельзя уже бить по файлам.
+# Делать чек паттернов везде. Или в конкретных папках.
+# Например python инфа и тестовая не должна быть в основной папке.
